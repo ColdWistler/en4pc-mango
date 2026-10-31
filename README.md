@@ -93,6 +93,21 @@ hl.env("qsConfig", "end4-pC")
 
 ---
 
+#### Under MangoWM
+
+Add the shell to `~/.config/mango/config.conf` (see
+[`mango-keybinds.conf`](mango-keybinds.conf) for the keybinds and the
+`source_optional` include):
+
+```bash
+exec_once=qs -c end4-pC
+
+# at the END of the file, so the shell's options win over yours
+source_optional=/home/<user>/.config/mango/qssettings/shell.conf
+```
+
+---
+
 ### ⚙️ Settings keybind
 
 To open the settings panel, add this to your Hyprland config:
@@ -114,6 +129,59 @@ Open the launcher (`SUPER`) and type `<` — it'll show you the full list of con
 ### Why doesn't Settings have a search bar?
 
 It doesn't need one — the launcher already does that job. Open the launcher (`SUPER`) and just type what you're looking for (e.g. `wallpaper`, `bar`, `blur`); it'll match against page names and section keywords and jump you straight to the right Settings page, so there's no need for a separate search inside Settings itself.
+
+---
+
+## 🥭 MangoWM
+
+This fork also runs on **MangoWM** (`mmsg` IPC). MangoWM is tag based, so the
+shell exposes Mango's tags as workspaces and never touches your
+`~/.config/mango/config.conf` unless you ask it to.
+
+<div align="center">
+
+| 🌿 Desktop & widgets | 🎧 More wallpapers |
+|:---:|:---:|
+| ![MangoWM desktop](screenshots/mango/mango-desktop-1.png) | ![MangoWM desktop](screenshots/mango/mango-desktop-2.png) |
+
+</div>
+
+### What runs under MangoWM
+
+| Component | Notes |
+|:---|:---|
+| `services/WM.qml` | One compositor facade: `isHyprland` / `isNiri` / `isMango`, plus window, workspace, monitor and action proxies. Consumers never call a compositor API directly. |
+| `services/MangoBackend.qml` | `mmsg` watch streams, normalised into Hyprland-shaped data. Tags become workspaces with ids `(monitorIndex + 1) * 100 + tagIndex`. |
+| `services/MangoXkb.qml` + `services/Xkb.qml` | Keyboard layout, replacing the Hyprland-only indicator. |
+| `services/Keybinds.qml` + `services/MangoKeybinds.qml` + `scripts/mango/` | Keybind parsing so launcher search still finds your binds. |
+| Settings → Mango | Mango options are persisted in `~/.config/mango/qssettings/settings.json` and written to a generated `shell.conf` that your config includes via `source_optional`. Add the include line at the end of `config.conf` (the page's **Setup** button does it with a backup). |
+
+### MangoWM keybinds
+
+MangoWM has no global-shortcut protocol, so the shell is driven through IPC
+instead of Hyprland bindings. Reference: [`mango-keybinds.conf`](mango-keybinds.conf).
+
+```bash
+bind=SUPER,d,spawn,qs -c end4-pC ipc call search toggle
+bind=SUPER,w,spawn,qs -c end4-pC ipc call wallpaperSelector toggle
+bind=SUPER,t,spawn,qs -c end4-pC ipc call search workspacesToggle
+bind=NONE,XF86MonBrightnessUp,spawn,qs -c end4-pC ipc call brightness increment
+bind=NONE,XF86MonBrightnessDown,spawn,qs -c end4-pC ipc call brightness decrement
+bind=NONE,XF86AudioRaiseVolume,spawn_shell,wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+
+bind=NONE,XF86AudioLowerVolume,spawn_shell,wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
+bind=NONE,XF86AudioMute,spawn_shell,wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+```
+
+Run `qs -c end4-pC ipc show` for every target the shell exposes.
+
+### Where screenshots end up
+
+| Tool | Path |
+|:---|:---|
+| Shell screen snip — Settings → Services → *Screenshot path* | unset means clipboard only; set it to `~/Pictures/Screenshots` |
+| `flameshot` (`SUPER + O`) | `~/Pictures/Screenshots` |
+| Captures used in the screenshots above | `~/Pictures/Screenshots/Screenshots` |
+| Screen recordings | `~/Videos` |
 
 ---
 
