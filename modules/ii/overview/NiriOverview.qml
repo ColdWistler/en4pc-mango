@@ -18,11 +18,11 @@ Item {
     required property var screen
     property var panelWindow
 
-    property var monitorData: HyprlandData.monitors.find(m => m.name === Hyprland.focusedMonitor?.name)
+    property var monitorData: WM.monitors.find(m => m.name === WM.focusedMonitor?.name)
 
     property int activeWorkspaceId: {
         var id = monitorData?.activeWorkspace?.id ?? 1
-        return Math.max(1, Math.min(100, id))
+        return Math.max(1, Math.min(100, WM.workspaceDisplayIndex(id)))
     }
 
     readonly property int maxWorkspaces: Math.max(20, Config.options?.bar?.workspaces?.shown ?? 10)
@@ -34,7 +34,7 @@ Item {
     readonly property real monitorH: screen?.height ?? 1080
     readonly property real screenCenterX: monitorW / 2
 
-    property var windows: HyprlandData.windowList
+    property var windows: WM.windowList
 
     property int dragFromWs: -1
     property int dragFromPos: -1
@@ -92,28 +92,32 @@ Item {
 
     function getWindowsSortedByX(wsId) {
         if (!windows) return []
-        var wins = windows.filter(w => w.workspace?.id === wsId)
+        var wins = windows.filter(w => WM.workspaceDisplayIndex(w.workspace?.id) === wsId)
         wins.sort((a, b) => a.at[0] - b.at[0])
         return wins
     }
 
     function getMonitorDataForWindow(win) {
         if (!win) return null
-        return HyprlandData.monitors.find(m => m.id === win.monitor) ?? null
+        return WM.monitors.find(m => m.id === win.monitor) ?? null
     }
 
     function getToplevelForWindow(win) {
         if (!win) return null
-        return ToplevelManager.toplevels.values.find(
-            t => `0x${t.HyprlandToplevel?.address}` === win.address
-        ) ?? null
+        const values = ToplevelManager.toplevels?.values ?? []
+        const direct = values.find(t => {
+            const a = t.HyprlandToplevel?.address
+            return a && (`0x${a}` === win.address || a === win.address)
+        })
+        if (direct) return direct
+        return values.find(t => (t.appId ?? "") === (win.appId ?? "") && (t.title ?? "") === (win.title ?? "")) ?? null
     }
 
     function getWindowsBBox(wins) {
         if (!wins || wins.length === 0)
             return { x: 0, y: 0, w: root.monitorW, h: root.monitorH }
 
-        var refMon = HyprlandData.monitors.find(m => m.id === wins[0].monitor)
+        var refMon = WM.monitors.find(m => m.id === wins[0].monitor)
         var refW = refMon ? refMon.width / (refMon.scale ?? 1.0) : root.monitorW
         var refH = refMon ? refMon.height / (refMon.scale ?? 1.0) : root.monitorH
 
@@ -122,7 +126,7 @@ Item {
 
         for (var i = 0; i < wins.length; i++) {
             var w = wins[i]
-            var mon = HyprlandData.monitors.find(m => m.id === w.monitor)
+            var mon = WM.monitors.find(m => m.id === w.monitor)
             var monD = getMonitorDataForWindow(w)
             var wx = w.at[0] - (mon?.x ?? 0) - (monD?.reserved[0] ?? 0)
             var wy = w.at[1] - (mon?.y ?? 0) - (monD?.reserved[1] ?? 0)
@@ -152,7 +156,7 @@ Item {
 
     function getWinXInRow(win, monData, fitScale, bbox) {
         if (!win || !monData) return 0
-        var mon = HyprlandData.monitors.find(m => m.id === win.monitor)
+        var mon = WM.monitors.find(m => m.id === win.monitor)
         var rawX = win.at[0] - (mon?.x ?? 0) - (monData.reserved[0] ?? 0)
         var relX = (rawX - bbox.x) * root.scale * fitScale
         var totalW = bbox.w * root.scale * fitScale
@@ -162,7 +166,7 @@ Item {
 
     function getWinYInRow(win, monData, fitScale, bbox) {
         if (!win || !monData) return 0
-        var mon = HyprlandData.monitors.find(m => m.id === win.monitor)
+        var mon = WM.monitors.find(m => m.id === win.monitor)
         var rawY = win.at[1] - (mon?.y ?? 0) - (monData.reserved[1] ?? 0)
         var relY = (rawY - bbox.y) * root.scale * fitScale
         var totalH = bbox.h * root.scale * fitScale
@@ -203,11 +207,10 @@ Item {
         if (fromWs === toWs) {
             if (toPos !== fromPos && toPos < toWsWindows.length) {
                 var targetAddr = toWsWindows[toPos].address
-                Hyprland.dispatch(`hl.dsp.focus({ window = "address:${targetAddr}" })`)
-                Hyprland.dispatch(`hl.dsp.window.swap({ window = "address:${addr}" })`)
+                WM.swapWindows(addr, targetAddr)
             }
         } else {
-            Hyprland.dispatch(`hl.dsp.window.move({ workspace = ${toWs}, follow = false, window = "address:${addr}" })`)
+            WM.moveWindowToWorkspace(addr, WM.workspaceIdFromDisplayIndex(toWs, WM.focusedMonitor?.name))
         }
     }
 
@@ -361,7 +364,7 @@ Item {
                             enabled: !root.isDragging && rowItem.wsWindows.length === 0
                             onClicked: {
                                 GlobalStates.overviewOpen = false
-                                Hyprland.dispatch(`hl.dsp.focus({ workspace = ${rowItem.wsId} })`)
+                                WM.switchWorkspace(WM.workspaceIdFromDisplayIndex(rowItem.wsId, root.monitorData?.name))
                             }
                         }
                     }
@@ -514,10 +517,10 @@ Item {
                                     if (!winContainer.win) return
                                     if (event.button === Qt.LeftButton) {
                                         GlobalStates.overviewOpen = false
-                                        Hyprland.dispatch(`hl.dsp.focus({ window = "address:${winContainer.win.address}" })`)
+                                        WM.focusWindow(winContainer.win.address)
                                         event.accepted = true
                                     } else if (event.button === Qt.MiddleButton) {
-                                        Hyprland.dispatch(`hl.dsp.window.close({ window = "address:${winContainer.win.address}" })`)
+                                        WM.closeWindow(winContainer.win.address)
                                         event.accepted = true
                                     }
                                 }

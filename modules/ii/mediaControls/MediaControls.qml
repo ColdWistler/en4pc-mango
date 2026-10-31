@@ -137,7 +137,7 @@ Scope {
             readonly property real cardMargin: Appearance.sizes.elevationMargin
             readonly property real inset: Config.options.hyprland.general.gapsOut
             readonly property var reserved: {
-                const monitor = HyprlandData.monitors.find(m => m.name === panelWindow.screen.name)
+                const monitor = WM.monitors.find(m => m.name === panelWindow.screen.name)
                 if (monitor?.reserved) return monitor.reserved
                 const bar = root.barThickness
                 return [root.barEdge === "left" ? bar : 0, root.barEdge === "top" ? bar : 0, root.barEdge === "right" ? bar : 0, root.barEdge === "bottom" ? bar : 0]
@@ -169,7 +169,7 @@ Scope {
             }
 
             Component.onCompleted: {
-                HyprlandData.updateMonitors()
+                WM.updateMonitors()
                 if (!Config.options.bar.media.alwaysVisible)
                     GlobalFocusGrab.addDismissable(panelWindow);
             }

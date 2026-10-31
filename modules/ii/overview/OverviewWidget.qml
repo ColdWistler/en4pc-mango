@@ -10,22 +10,34 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
-import Quickshell.Hyprland
 
 Item {
     id: root
     required property var screen
-    readonly property HyprlandMonitor monitor: Hyprland.monitorFor(screen)
+    readonly property var monitor: WM.monitorFor(screen)
     readonly property var toplevels: ToplevelManager.toplevels
     // Clamp to avoid lock-screen temp workspace (2147483647 - N) leaking into UI
-    readonly property int effectiveActiveWorkspaceId: Math.max(1, Math.min(100, monitor?.activeWorkspace?.id ?? 1))
-    readonly property int workspacesShown: Config.options.overview.rows * Config.options.overview.columns
+    readonly property int effectiveActiveWorkspaceId: Math.max(1, Math.min(100, WM.workspaceDisplayIndex(monitor?.activeWorkspace?.id ?? 1)))
+    readonly property int workspacesShown: effectiveRows * effectiveColumns
     readonly property int workspaceGroup: Math.floor((effectiveActiveWorkspaceId - 1) / workspacesShown)
-    property bool monitorIsFocused: (Hyprland.focusedMonitor?.name == monitor.name)
-    property var windows: HyprlandData.windowList
-    property var windowByAddress: HyprlandData.windowByAddress
-    property var windowAddresses: HyprlandData.addresses
-    property var monitorData: HyprlandData.monitors.find(m => m.id === root.monitor?.id)
+
+    // Number of workspaces this monitor actually has. Mango exposes a fixed tag
+    // count, so the grid should match it instead of a hardcoded 10 cells.
+    readonly property int workspaceCount: {
+        if (WM.isMango) {
+            const own = WM.workspaces.filter(w => w.output === root.monitor?.name);
+            if (own.length > 0) return own.length;
+        }
+        return Config.options.overview.rows * Config.options.overview.columns;
+    }
+    // Rows first (from user config), then the columns needed to fit the count.
+    readonly property int effectiveRows: Math.max(1, Math.min(Config.options.overview.rows, root.workspaceCount))
+    readonly property int effectiveColumns: Math.max(1, Math.ceil(root.workspaceCount / root.effectiveRows))
+    property bool monitorIsFocused: (WM.focusedMonitor?.name == monitor.name)
+    property var windows: WM.windowList
+    property var windowByAddress: WM.windowByAddress
+    property var windowAddresses: WM.addresses
+    property var monitorData: WM.monitors.find(m => m.id === root.monitor?.id)
     property real scale: Config.options.overview.scale
     property color activeBorderColor: Appearance.colors.colSecondary
 
@@ -56,17 +68,30 @@ Item {
     
     function getWsRow(ws) {
         // 1-indexed workspace, 0-indexed row
-        var normalRow = Math.floor((ws - 1) / Config.options.overview.columns) % Config.options.overview.rows;
-        return (Config.options.overview.orderBottomUp ? Config.options.overview.rows - normalRow - 1 : normalRow);
+        var normalRow = Math.floor((ws - 1) / root.effectiveColumns) % root.effectiveRows;
+        return (Config.options.overview.orderBottomUp ? root.effectiveRows - normalRow - 1 : normalRow);
     }
     function getWsColumn(ws) {
         // 1-indexed workspace, 0-indexed column
-        var normalCol = (ws - 1) % Config.options.overview.columns;
-        return (Config.options.overview.orderRightLeft ? Config.options.overview.columns - normalCol - 1 : normalCol);
+        var normalCol = (ws - 1) % root.effectiveColumns;
+        return (Config.options.overview.orderRightLeft ? root.effectiveColumns - normalCol - 1 : normalCol);
     }
     function getWsInCell(ri, ci) {
         // 1-indexed workspace, 0-indexed row and column index
-        return (Config.options.overview.orderBottomUp ? Config.options.overview.rows - ri - 1 : ri) * Config.options.overview.columns + (Config.options.overview.orderRightLeft ? Config.options.overview.columns - ci - 1 : ci) + 1
+        return (Config.options.overview.orderBottomUp ? root.effectiveRows - ri - 1 : ri) * root.effectiveColumns + (Config.options.overview.orderRightLeft ? root.effectiveColumns - ci - 1 : ci) + 1
+    }
+
+    // Screencopy needs a Toplevel. On compositors without window addresses we
+    // match the toplevel by appId + title.
+    function toplevelFor(win) {
+        if (!win) return null;
+        const values = ToplevelManager.toplevels?.values ?? [];
+        const direct = values.find(t => {
+            const a = t.HyprlandToplevel?.address;
+            return a && (`0x${a}` === win.address || a === win.address);
+        });
+        if (direct) return direct;
+        return values.find(t => (t.appId ?? "") === (win.appId ?? "") && (t.title ?? "") === (win.title ?? "")) ?? null;
     }
 
     StyledRectangularShadow {
@@ -97,19 +122,23 @@ Item {
             spacing: workspaceSpacing
             
             Repeater {
-                model: Config.options.overview.rows
+                model: root.effectiveRows
                 delegate: Row {
                     id: row
                     required property int index
                     spacing: workspaceSpacing
 
                     Repeater { // Workspace repeater
-                        model: Config.options.overview.columns
+                        model: root.effectiveColumns
                         Rectangle { // Workspace
                             id: workspace
                             required property int index
                             property int colIndex: index
                             property int workspaceValue: root.workspaceGroup * root.workspacesShown + getWsInCell(row.index, colIndex)
+                            // Hide cells past the compositor's workspace/tag count
+                            visible: workspace.workspaceValue <= root.workspaceCount
+                            width: visible ? implicitWidth : 0
+                            height: visible ? implicitHeight : 0
                             property color defaultWorkspaceColor: Appearance.colors.colSurfaceContainerLow
                             property color hoveredWorkspaceColor: ColorUtils.mix(defaultWorkspaceColor, Appearance.colors.colLayer1Hover, 0.1)
                             property color hoveredBorderColor: Appearance.colors.colLayer2Hover
@@ -149,7 +178,7 @@ Item {
                                 onPressed: {
                                     if (root.draggingTargetWorkspace === -1) {
                                         GlobalStates.overviewOpen = false
-                                        Hyprland.dispatch(`hl.dsp.focus({ workspace = ${workspace.workspaceValue} })`)
+                                        WM.switchWorkspace(WM.workspaceIdFromDisplayIndex(workspace.workspaceValue, root.monitor?.name))
                                     }
                                 }
                             }
@@ -182,11 +211,9 @@ Item {
             Repeater { // Window repeater
                 model: ScriptModel {
                     values: {
-                        // console.log(JSON.stringify(ToplevelManager.toplevels.values.map(t => t), null, 2))
-                        return ToplevelManager.toplevels.values.filter((toplevel) => {
-                            const address = `0x${toplevel.HyprlandToplevel?.address}`
-                            var win = windowByAddress[address]
-                            const inWorkspaceGroup = (root.workspaceGroup * root.workspacesShown < win?.workspace?.id && win?.workspace?.id <= (root.workspaceGroup + 1) * root.workspacesShown)
+                        return root.windows.filter((win) => {
+                            const wsDisplay = WM.workspaceDisplayIndex(win?.workspace?.id)
+                            const inWorkspaceGroup = (root.workspaceGroup * root.workspacesShown < wsDisplay && wsDisplay <= (root.workspaceGroup + 1) * root.workspacesShown)
                             return inWorkspaceGroup;
                         })
                     }
@@ -195,13 +222,13 @@ Item {
                     id: window
                     required property var modelData
                     property int monitorId: windowData?.monitor
-                    property var monitor: HyprlandData.monitors.find(m => m.id == monitorId)
-                    property var address: `0x${modelData.HyprlandToplevel.address}`
-                    toplevel: modelData
+                    property var monitor: WM.monitors.find(m => m.id == monitorId)
+                    property var address: modelData.address
+                    toplevel: root.toplevelFor(modelData)
                     monitorData: this.monitor
                     scale: root.scale
-                    widgetMonitor: HyprlandData.monitors.find(m => m.id == root.monitor.id)
-                    windowData: windowByAddress[address]
+                    widgetMonitor: WM.monitors.find(m => m.id == root.monitor.id)
+                    windowData: modelData
                     workspaceWidth: root.workspaceImplicitWidth
                     workspaceHeight: root.workspaceImplicitHeight
 
@@ -210,8 +237,8 @@ Item {
                     property real dragStartY: 0
 
                     // Offset on the canvas
-                    property int workspaceColIndex: getWsColumn(windowData?.workspace.id)
-                    property int workspaceRowIndex: getWsRow(windowData?.workspace.id)
+                    property int workspaceColIndex: getWsColumn(WM.workspaceDisplayIndex(windowData?.workspace.id))
+                    property int workspaceRowIndex: getWsRow(WM.workspaceDisplayIndex(windowData?.workspace.id))
                     xOffset: (root.workspaceImplicitWidth + workspaceSpacing) * workspaceColIndex
                     yOffset: (root.workspaceImplicitHeight + workspaceSpacing) * workspaceRowIndex
                     property real xWithinWorkspaceWidget: Math.max((windowData?.at[0] - (monitor?.x ?? 0) - monitorData?.reserved[0]) * root.scale, 0)
@@ -220,9 +247,9 @@ Item {
                     // Radius
                     property real minRadius: Appearance.rounding.small
                     property bool workspaceAtLeft: workspaceColIndex === 0
-                    property bool workspaceAtRight: workspaceColIndex === Config.options.overview.columns - 1
+                    property bool workspaceAtRight: workspaceColIndex === root.effectiveColumns - 1
                     property bool workspaceAtTop: workspaceRowIndex === 0
-                    property bool workspaceAtBottom: workspaceRowIndex === Config.options.overview.rows - 1
+                    property bool workspaceAtBottom: workspaceRowIndex === root.effectiveRows - 1
                     property bool workspaceAtTopLeft: (workspaceAtLeft && workspaceAtTop) 
                     property bool workspaceAtTopRight: (workspaceAtRight && workspaceAtTop) 
                     property bool workspaceAtBottomLeft: (workspaceAtLeft && workspaceAtBottom) 
@@ -263,7 +290,7 @@ Item {
                         acceptedButtons: Qt.LeftButton | Qt.MiddleButton
                         drag.target: parent
                         onPressed: (mouse) => {
-                            root.draggingFromWorkspace = windowData?.workspace.id
+                            root.draggingFromWorkspace = WM.workspaceDisplayIndex(windowData?.workspace.id)
                             window.pressed = true
                             window.dragging = true
                             // Stop any lingering Behavior animation from previous release
@@ -282,9 +309,10 @@ Item {
                             window.dragging = false
                             window.Drag.active = false
                             root.draggingFromWorkspace = -1
-                            if (targetWorkspace !== -1 && targetWorkspace !== windowData?.workspace.id) {
+                            if (targetWorkspace !== -1 && targetWorkspace !== WM.workspaceDisplayIndex(windowData?.workspace.id)) {
+                                const targetWorkspaceId = WM.workspaceIdFromDisplayIndex(targetWorkspace, root.monitor?.name)
                                 if (!window.windowData.floating) {
-                                    Hyprland.dispatch(`hl.dsp.window.move({ workspace = ${targetWorkspace}, follow = false, window = "address:${window.windowData?.address}" })`)
+                                    WM.moveWindowToWorkspace(window.windowData?.address, targetWorkspaceId)
                                     // Animate non-float: predict final size (will fill workspace if alone)
                                     const targetColIndex = getWsColumn(targetWorkspace)
                                     const targetRowIndex = getWsRow(targetWorkspace)
@@ -292,15 +320,10 @@ Item {
                                     const targetYOffset = (root.workspaceImplicitHeight + workspaceSpacing) * targetRowIndex
                                     // Check if target workspace will have other windows
                                     var otherWinCount = 0
-                                    var toplevels = ToplevelManager.toplevels.values
-                                    for (var i = 0; i < toplevels.length; i++) {
-                                        var t = toplevels[i]
-                                        var h = t.HyprlandToplevel
-                                        if (!h) continue
-                                        var addr = `0x${h.address}`
-                                        if (addr === window.windowData?.address) continue
-                                        var w = windowByAddress[addr]
-                                        if (w && !w.floating && w.workspace?.id === targetWorkspace) otherWinCount++
+                                    for (var i = 0; i < root.windows.length; i++) {
+                                        var w = root.windows[i]
+                                        if (w.address === window.windowData?.address) continue
+                                        if (w && !w.floating && WM.workspaceDisplayIndex(w.workspace?.id) === targetWorkspace) otherWinCount++
                                     }
                                     // If alone, use workspace size for centering; otherwise use current window size
                                     var finalW = otherWinCount === 0 ? root.workspaceImplicitWidth : window.width
@@ -309,7 +332,7 @@ Item {
                                     window.y = targetYOffset + (root.workspaceImplicitHeight - finalH) / 2
                                 } else {
                                     // Float: keep consistent screen position across workspaces
-                                    Hyprland.dispatch(`hl.dsp.window.move({ workspace = ${targetWorkspace}, follow = false, window = "address:${window.windowData?.address}" })`)
+                                    WM.moveWindowToWorkspace(window.windowData?.address, targetWorkspaceId)
                                     // Use captured dragStart position (most accurate) instead of initX (may be stale)
                                     const percentageX = (window.dragStartX - xOffset) / root.workspaceImplicitWidth
                                     const percentageY = (window.dragStartY - yOffset) / root.workspaceImplicitHeight
@@ -328,7 +351,7 @@ Item {
                                 }
                                 const percentageX = (window.x - xOffset) / root.workspaceImplicitWidth
                                 const percentageY = (window.y - yOffset) / root.workspaceImplicitHeight
-                                Hyprland.dispatch(`hl.dsp.window.move({ x = "${percentageX * root.screen.width}", y = "${percentageY * root.screen.height}", window = "address:${window.windowData?.address}" })`)
+                                WM.moveWindowAbsolute(window.windowData?.address, percentageX * root.screen.width, percentageY * root.screen.height)
                             }
                         }
                         onClicked: (event) => {
@@ -336,10 +359,10 @@ Item {
 
                             if (event.button === Qt.LeftButton) {
                                 GlobalStates.overviewOpen = false
-                                Hyprland.dispatch(`hl.dsp.focus({ window = "address:${windowData.address}" })`)
+                                WM.focusWindow(windowData.address)
                                 event.accepted = true
                             } else if (event.button === Qt.MiddleButton) {
-                                Hyprland.dispatch(`hl.dsp.window.close({ window = "address:${windowData.address}" })`)
+                                WM.closeWindow(windowData.address)
                                 event.accepted = true
                             }
                         }
@@ -364,9 +387,9 @@ Item {
                 height: root.workspaceImplicitHeight
                 color: "transparent"
                 property bool workspaceAtLeft: colIndex === 0
-                property bool workspaceAtRight: colIndex === Config.options.overview.columns - 1
+                property bool workspaceAtRight: colIndex === root.effectiveColumns - 1
                 property bool workspaceAtTop: rowIndex === 0
-                property bool workspaceAtBottom: rowIndex === Config.options.overview.rows - 1
+                property bool workspaceAtBottom: rowIndex === root.effectiveRows - 1
                 topLeftRadius: (workspaceAtLeft && workspaceAtTop) ? root.largeWorkspaceRadius : root.smallWorkspaceRadius
                 topRightRadius: (workspaceAtRight && workspaceAtTop) ? root.largeWorkspaceRadius : root.smallWorkspaceRadius
                 bottomLeftRadius: (workspaceAtLeft && workspaceAtBottom) ? root.largeWorkspaceRadius : root.smallWorkspaceRadius

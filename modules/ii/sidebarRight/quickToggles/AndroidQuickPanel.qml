@@ -28,15 +28,17 @@ AbstractQuickPanel {
     }
     readonly property real baseCellHeight: 56
 
+    // `gameMode` and `antiFlashbang` need Hyprland's game mode / screen shader.
+    readonly property list<string> hyprlandOnlyToggles: ["gameMode", "antiFlashbang"]
     readonly property list<string> availableToggleTypes: {
         const base = ["network", "bluetooth", "idleInhibitor", "easyEffects", "nightLight", "darkMode", "cloudflareWarp", "gameMode", "screenSnip", "colorPicker", "onScreenKeyboard", "mic", "audio", "notifications", "powerProfile","musicRecognition", "antiFlashbang", "vpn"]
-        return WM.compositor === "hyprland" ? base : base.filter(t => t !== "gameMode")
+        return WM.compositor === "hyprland" ? base : base.filter(t => !root.hyprlandOnlyToggles.includes(t))
     }
     readonly property int columns: Config.options.sidebar.quickToggles.android.columns
     readonly property list<var> toggles: {
         if (!Config.ready) return []
         const raw = Config.options.sidebar.quickToggles.android.toggles
-        return WM.compositor === "hyprland" ? raw : raw.filter(t => !t || t.type !== "gameMode")
+        return WM.compositor === "hyprland" ? raw : raw.filter(t => !t || !root.hyprlandOnlyToggles.includes(t.type))
     }
     readonly property list<var> toggleRows: toggleRowsForList(toggles)
     readonly property list<var> unusedToggles: {

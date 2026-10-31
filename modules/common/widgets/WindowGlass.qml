@@ -113,7 +113,7 @@ Item {
                 try {
                     const client = JSON.parse(line)
                     if (client.title !== root.win.title || !root.scr) return
-                    const mon = HyprlandData.monitors.find(m => m.name === root.scr.name)
+                    const mon = WM.monitors.find(m => m.name === root.scr.name)
                     root.floatX = client.at[0] - (mon?.x ?? 0)
                     root.floatY = client.at[1] - (mon?.y ?? 0)
                 } catch (e) {}

@@ -12,8 +12,8 @@ import Quickshell.Wayland
 Item { // Window
     id: root
     property var toplevel
-    property var windowAddresses: HyprlandData.addresses
-    property var windowByAddress: HyprlandData.windowByAddress
+    property var windowAddresses: WM.addresses
+    property var windowByAddress: WM.windowByAddress
     property var windowData
     property var monitorData
     property var scale

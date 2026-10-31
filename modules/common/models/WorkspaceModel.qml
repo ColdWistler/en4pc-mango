@@ -11,10 +11,8 @@ NestableObject {
     required property var screen
     readonly property string monitorName: screen?.name ?? ""
 
-    readonly property var hyprMonitor: WM.compositor === "hyprland" ? Hyprland.monitorFor(screen) : null
-    readonly property var liveMonitorData: WM.compositor === "hyprland"
-        ? HyprlandData.monitors.find(m => m.id === hyprMonitor?.id)
-        : null
+    readonly property var hyprMonitor: WM.compositor === "hyprland" ? WM.monitorFor(screen) : null
+    readonly property var liveMonitorData: WM.monitors.find(m => m.name === root.monitorName) ?? null
 
     readonly property Toplevel activeWindow: ToplevelManager.activeToplevel
     readonly property int shownCount: C.Config.options.bar.workspaces.shown
@@ -63,7 +61,7 @@ NestableObject {
 
     function biggestWindowForNumber(number) {
         if (WM.compositor === "hyprland")
-            return HyprlandData.biggestWindowForWorkspace(number)
+            return WM.biggestWindowForWorkspace(number)
 
         const realId = root._niriRealId(number)
         if (realId === null) return null
@@ -79,14 +77,14 @@ NestableObject {
 
         if (WM.compositor === "hyprland") {
             const occupiedWsIds = new Set();
-            const wsVals = Hyprland.workspaces?.values || [];
+            const wsVals = WM.workspaces || [];
             for (let i = 0; i < wsVals.length; i++) {
                 const ws = wsVals[i];
                 if (ws && (ws.windows > 0 || ws.id !== root.activeNumber)) {
                     occupiedWsIds.add(ws.id);
                 }
             }
-            const winList = HyprlandData.windowList || [];
+            const winList = WM.windowList || [];
             for (let i = 0; i < winList.length; i++) {
                 const w = winList[i];
                 if (w?.workspace?.id !== undefined) {
@@ -111,37 +109,16 @@ NestableObject {
 
     Component.onCompleted: updateWorkspaceOccupied()
 
-    // Hyprland
-    Connections {
-        target: Hyprland.workspaces
-        enabled: WM.compositor === "hyprland"
-        function onValuesChanged() {
-            root.updateWorkspaceOccupied()
-        }
-    }
-    Connections {
-        target: Hyprland
-        enabled: WM.compositor === "hyprland"
-        function onFocusedWorkspaceChanged() {
-            root.updateWorkspaceOccupied()
-        }
-    }
-    Connections {
-        target: HyprlandData
-        enabled: WM.compositor === "hyprland"
-        function onWindowListChanged() {
-            root.updateWorkspaceOccupied()
-        }
-    }
-
-    // Niri
+    // Any compositor: the WM facade re-emits the backend data changes.
     Connections {
         target: WM
-        enabled: WM.compositor !== "hyprland"
         function onWorkspacesChanged() {
             root.updateWorkspaceOccupied()
         }
         function onWindowListChanged() {
+            root.updateWorkspaceOccupied()
+        }
+        function onActiveWorkspaceChanged() {
             root.updateWorkspaceOccupied()
         }
     }

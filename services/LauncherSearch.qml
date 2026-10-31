@@ -8,7 +8,6 @@ import QtQuick
 import Qt.labs.folderlistmodel
 import Quickshell
 import Quickshell.Io
-import Quickshell.Hyprland
 import ".."
 
 Singleton {
@@ -111,7 +110,7 @@ Singleton {
         {
             action: "wallpaper",
             execute: () => {
-                Hyprland.dispatch(`hl.dsp.global("quickshell:wallpaperSelectorToggle")`)
+                GlobalStates.wallpaperSelectorOpen = !GlobalStates.wallpaperSelectorOpen
             }
         },
         {
@@ -303,7 +302,7 @@ Singleton {
                     result = result.concat(flatten(child));
                 }
                 return result;
-            })(HyprlandKeybinds.keybinds);
+            })(Keybinds.keybinds);
 
             return flatBinds.filter(bind => {
                 if (!bind.comment) return false;

@@ -6,11 +6,14 @@ import Quickshell.Io
 Scope {
     id: root
     property var windowList: []
+    property var windowByAddress: ({})
+    property var addresses: []
     property var workspaces: []
     property var workspaceById: ({})
     property var activeWorkspace: null
     property var monitors: []
     property var focusedMonitor: null
+    property var layers: ({})
 
     function switchWorkspaceRelative(direction) {
         actionProc.command = ["niri", "msg", "action", direction === "next" ? "focus-workspace-down" : "focus-workspace-up"];
@@ -18,17 +21,36 @@ Scope {
     }
 
     function normalizeWindow(w) {
+        const pos = w.layout?.tile_pos_in_workspace_view ?? [0, 0];
+        const size = w.layout?.window_size ?? w.layout?.tile_size ?? [0, 0];
         return {
             id: String(w.id),
             address: String(w.id),
+            pid: w.pid,
             title: w.title ?? "",
             appId: w.app_id ?? "",
             class: w.app_id ?? "",
+            workspace: { id: w.workspace_id },
             workspaceId: w.workspace_id,
+            monitor: root.monitorIndexForWindow(w),
+            at: pos,
+            size: size,
+            x: pos[0],
+            y: pos[1],
+            width: size[0],
+            height: size[1],
+            floating: w.is_floating === true,
+            fullscreen: false,
             focused: w.is_focused ?? false,
-            width: w.layout?.window_size?.[0] ?? 0,
-            height: w.layout?.window_size?.[1] ?? 0
+            mapped: true,
+            xwayland: false
         };
+    }
+
+    function monitorIndexForWindow(w) {
+        const ws = root.workspaces.find(ws => ws.id === w.workspace_id);
+        if (!ws) return 0;
+        return Math.max(0, root.monitors.findIndex(m => m.name === ws.output));
     }
 
     function focusWindow(id) {
@@ -47,10 +69,41 @@ Scope {
         actionProc.command = ["niri", "msg", "action", "move-window-to-workspace", "--window-id", id, String(wsId)];
         actionProc.running = true;
     }
+    function moveWindowAbsolute(id, x, y) {
+        actionProc.command = ["niri", "msg", "action", "move-floating-window", "--id", id, "--x", String(Math.round(x)), "--y", String(Math.round(y))];
+        actionProc.running = true;
+    }
+    function toggleFloating(id) {
+        actionProc.command = ["niri", "msg", "action", "toggle-window-floating", "--id", id];
+        actionProc.running = true;
+    }
+    function toggleFullscreen(id) {
+        focusWindow(id);
+        actionProc.command = ["niri", "msg", "action", "fullscreen-window"];
+        actionProc.running = true;
+    }
+    function focusMonitor(direction) {
+        actionProc.command = ["niri", "msg", "action", direction === "left" ? "focus-monitor-left" : "focus-monitor-right"];
+        actionProc.running = true;
+    }
+    function swapWindows(a, b) {
+        actionProc.command = ["niri", "msg", "action", "swap-window", "--id", a];
+        actionProc.running = true;
+    }
+    function setCursorWarp(enabled) {}
 
     function monitorFor(screen) {
         if (!screen) return null;
         return root.monitors.find(m => m.name === screen.name) ?? null;
+    }
+
+    function workspaceDisplayIndex(id) {
+        const n = Number(id);
+        return Number.isFinite(n) ? n : 1;
+    }
+
+    function workspaceIdFromDisplayIndex(displayIndex) {
+        return Number(displayIndex);
     }
 
     function activeWorkspaceForMonitor(monitorName) {
@@ -100,6 +153,10 @@ Scope {
             onStreamFinished: {
                 try {
                     root.windowList = JSON.parse(text).map(root.normalizeWindow);
+                    const byAddress = {};
+                    for (const win of root.windowList) byAddress[win.address] = win;
+                    root.windowByAddress = byAddress;
+                    root.addresses = root.windowList.map(w => w.address);
                 } catch (e) { console.log("[NiriBackend] windows parse error: " + e) }
             }
         }
@@ -112,11 +169,16 @@ Scope {
             onStreamFinished: {
                 try {
                     const raw = JSON.parse(text);
-                    root.workspaces = raw;
+                    const windows = root.windowList || [];
+                    root.workspaces = raw.map(ws => Object.assign({}, ws, {
+                        active: ws.is_active === true,
+                        windows: windows.filter(w => w.workspaceId === ws.id).length,
+                        hasfullscreen: false
+                    }));
                     let byId = {};
-                    for (const ws of raw) byId[ws.id] = ws;
+                    for (const ws of root.workspaces) byId[ws.id] = ws;
                     root.workspaceById = byId;
-                    root.activeWorkspace = raw.find(ws => ws.is_focused) ?? null;
+                    root.activeWorkspace = root.workspaces.find(ws => ws.is_focused) ?? null;
                 } catch (e) { console.log("[NiriBackend] workspaces parse error: " + e) }
             }
         }
@@ -129,18 +191,29 @@ Scope {
             onStreamFinished: {
                 try {
                     const raw = JSON.parse(text);
-                    root.monitors = Object.keys(raw).map(name => {
+                    root.monitors = Object.keys(raw).map((name, index) => {
                         const o = raw[name];
+                        const logical = o.logical ?? {};
                         return {
+                            id: index,
                             name: name,
                             make: o.make ?? "",
                             model: o.model ?? "",
                             current_mode: o.current_mode,
                             modes: o.modes,
-                            logical: o.logical
+                            logical: o.logical,
+                            x: logical.x ?? 0,
+                            y: logical.y ?? 0,
+                            width: logical.width ?? 1920,
+                            height: logical.height ?? 1080,
+                            scale: logical.scale ?? 1,
+                            reserved: [0, 0, 0, 0],
+                            transform: logical.transform ?? 0,
+                            specialWorkspace: { name: "" },
+                            activeWorkspace: root.workspaces.find(ws => ws.output === name && ws.is_active) ?? null
                         };
                     });
-                    root.focusedMonitor = root.monitors.find(m => root.workspaces.find(ws => ws.output === m.name && ws.is_focused)) ?? null;
+                    root.focusedMonitor = root.monitors.find(m => root.workspaces.find(ws => ws.output === m.name && ws.is_focused)) ?? root.monitors[0] ?? null;
                 } catch (e) { console.log("[NiriBackend] outputs parse error: " + e) }
             }
         }

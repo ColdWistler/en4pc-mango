@@ -34,14 +34,14 @@ Singleton {
             return;
         }
 
-        const focusedName = Hyprland.focusedMonitor.name;
+        const focusedName = WM.focusedMonitor?.name;
         const monitor = monitors.find(m => focusedName === m.screen.name);
         if (monitor)
             monitor.setBrightness(monitor.brightness + 0.05);
     }
 
     function decreaseBrightness(): void {
-        const focusedName = Hyprland.focusedMonitor.name;
+        const focusedName = WM.focusedMonitor?.name;
         const monitor = monitors.find(m => focusedName === m.screen.name);
         if (monitor && monitor.brightness > 0) 
             monitor.setBrightness(monitor.brightness - 0.05);
@@ -201,7 +201,7 @@ Singleton {
             property string screenName: modelData.name
             property string screenshotPath: `${root.screenshotDir}/screenshot-${screenName}.png`
             Connections {
-                enabled: Config.options.light.antiFlashbang.enable && Appearance.m3colors.darkmode
+                enabled: Config.options.light.antiFlashbang.enable && Appearance.m3colors.darkmode && WM.isHyprland
                 target: Hyprland
                 function onRawEvent(event) {
                     if (["activewindowv2", "windowtitlev2"].includes(event.name)) {
@@ -249,11 +249,11 @@ Singleton {
         target: "brightness"
 
         function increment() {
-            onPressed: root.increaseBrightness()
+            root.increaseBrightness()
         }
 
         function decrement() {
-            onPressed: root.decreaseBrightness()
+            root.decreaseBrightness()
         }
     }
 

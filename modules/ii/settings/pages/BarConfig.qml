@@ -109,7 +109,7 @@ ContentPage {
         ContentSection {
             icon: "monitor"
             shape: MaterialShape.Shape.ClamShell
-            visible: Hyprland.monitors.values.length > 1
+            visible: WM.monitors.length > 1
             title: Translation.tr("Screens")
             ContentSubsection {
                 title: Translation.tr("Show bar on")
@@ -148,12 +148,12 @@ ContentPage {
                     }
 
                     Repeater {
-                        model: Hyprland.monitors
+                        model: WM.monitors
                         delegate: Rectangle {
                             id: monitorRow
                             required property var modelData
                             required property int index
-                            readonly property bool isLast: index === Hyprland.monitors.values.length - 1
+                            readonly property bool isLast: index === WM.monitors.length - 1
 
                             Layout.fillWidth: true
                             implicitHeight: switchItem.implicitHeight + 16 + 8
@@ -169,7 +169,7 @@ ContentPage {
                                 buttonIcon: "monitor"
                                 text: monitorRow.modelData.name
                                 onCheckedChanged: {
-                                    const allNames = Hyprland.monitors.values.map(m => m.name)
+                                    const allNames = WM.monitors.map(m => m.name)
                                     let list = Config.options.bar.screenList.length === 0 ? allNames.slice() : Config.options.bar.screenList.slice()
                                     if (checked) {
                                         if (!list.includes(monitorRow.modelData.name)) list.push(monitorRow.modelData.name)

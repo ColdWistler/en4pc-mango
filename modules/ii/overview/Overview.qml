@@ -18,7 +18,7 @@ Scope {
     PanelWindow {
         id: panelWindow
         property string searchingText: ""
-        readonly property HyprlandMonitor monitor: Hyprland.monitorFor(panelWindow.screen)
+        readonly property var monitor: WM.monitorFor(panelWindow.screen)
         readonly property bool barCenterOnly: Config.options.bar.layouts.leftLayout.length === 0
             && Config.options.bar.layouts.rightLayout.length === 0
             && !Config.options.bar.vertical
@@ -27,7 +27,7 @@ Scope {
             && Config.options.bar.centerOnlyReserveFrame
             && !Config.options.bar.bottom
             && !Config.options.bar.autoHide.enable
-        property bool monitorIsFocused: (Hyprland.focusedMonitor?.id == monitor?.id)
+        property bool monitorIsFocused: (WM.focusedMonitor?.id == monitor?.id)
         visible: GlobalStates.overviewOpen
 
         WlrLayershell.namespace: "quickshell:overview"
@@ -124,10 +124,10 @@ Scope {
                     GlobalStates.overviewOpen = false;
                 } else if (event.key === Qt.Key_Left) {
                     if (!panelWindow.searchingText)
-                        Hyprland.dispatch("workspace r-1");
+                        WM.switchWorkspaceRelative("prev");
                 } else if (event.key === Qt.Key_Right) {
                     if (!panelWindow.searchingText)
-                        Hyprland.dispatch("workspace r+1");
+                        WM.switchWorkspaceRelative("next");
                 }
             }
 

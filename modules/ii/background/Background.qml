@@ -41,15 +41,18 @@ Variants {
         property string currentShader: "pixelate"
         property string wallpaperAnimation: Config.options.background.wallpaperAnimation ?? "random"
 
-        property list<HyprlandWorkspace> workspacesForMonitor: Hyprland.workspaces.values.filter(workspace => workspace.monitor && workspace.monitor.name == monitor.name)
-        property var activeWorkspaceWithFullscreen: workspacesForMonitor.filter(workspace => ((workspace.toplevels.values.filter(window => window.wayland?.fullscreen)[0] != undefined) && workspace.active))[0]
+        property var workspacesForMonitor: WM.workspaces.filter(workspace => (workspace.output ?? workspace.monitor?.name) === (monitor?.name ?? ""))
+        property var activeWorkspaceWithFullscreen: workspacesForMonitor.find(workspace =>
+            (workspace.active === true || workspace.is_active === true)
+            && (workspace.hasfullscreen === true
+                || (workspace.toplevels?.values ?? []).some(window => window.wayland?.fullscreen === true))) ?? null
         visible: true
 
         readonly property bool hiddenForFullscreen: !GlobalStates.screenLocked
             && (activeWorkspaceWithFullscreen != undefined)
             && Config?.options.background.hideWhenFullscreen
 
-        property HyprlandMonitor monitor: Hyprland.monitorFor(modelData)
+        property var monitor: WM.monitorFor(modelData)
 
         property string effectiveWallpaperPath: {
             if (GlobalStates.screenLocked && Config.options.background.lockWall !== "")

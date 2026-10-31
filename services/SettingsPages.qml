@@ -22,6 +22,8 @@ Singleton {
             list.push({ id: "hyprland", name: Translation.tr("Hyprland"), icon: "select_window_2", file: "HyprlandConfig.qml" });
         if (WM.compositor === "niri")
             list.push({ id: "niri", name: Translation.tr("Niri"), icon: "select_window_2", file: "NiriConfig.qml" });
+        if (WM.compositor === "mango")
+            list.push({ id: "mango", name: Translation.tr("Mango"), icon: "select_window_2", file: "MangoConfig.qml" });
         list.push({ id: "about", name: Translation.tr("About"), icon: "info", file: "About.qml" });
         return list.map(page => Object.assign({}, page, {
             component: Qt.resolvedUrl("../" + root.pagesDir + page.file),

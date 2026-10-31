@@ -13,6 +13,8 @@ Singleton {
 
     readonly property real gammaLowerLimit: 25
     readonly property bool isNiri: WM.compositor === "niri"
+    // wlsunset works on any wlroots-based compositor (niri, mango, ...).
+    readonly property bool useWlsunset: WM.compositor !== "hyprland" && WM.compositor !== "unknown"
 
     property string from: Config.options?.light?.night?.from ?? "19:00"
     property string to: Config.options?.light?.night?.to ?? "06:30"
@@ -84,12 +86,12 @@ Singleton {
     }
 
     function startHyprsunset() {
-        if (root.isNiri) return;
+        if (root.useWlsunset) return;
         Quickshell.execDetached(["bash", "-c", `pidof hyprsunset || hyprsunset`]);
     }
 
     function load() {
-        if (root.isNiri) {
+        if (root.useWlsunset) {
             root.disableTemperature();
             return;
         }
@@ -98,7 +100,7 @@ Singleton {
     }
 
     function enableTemperature() {
-        if (root.isNiri) {
+        if (root.useWlsunset) {
             root.startNiriSunset(root.colorTemperature);
         } else {
             root.startHyprsunset();
@@ -108,7 +110,7 @@ Singleton {
     }
 
     function disableTemperature() {
-        if (root.isNiri) {
+        if (root.useWlsunset) {
             root.stopNiriSunset();
         } else {
             Quickshell.execDetached(["hyprctl", "hyprsunset", "identity"]);
@@ -120,7 +122,7 @@ Singleton {
         root.gamma = Math.max(root.gammaLowerLimit, Math.min(100, gamma));
         root.gammaChangeAttempt();
 
-        if (root.isNiri) {
+        if (root.useWlsunset) {
             return;
         }
         root.startHyprsunset();
@@ -139,7 +141,7 @@ Singleton {
     }
 
     function fetchState() {
-        if (root.isNiri) {
+        if (root.useWlsunset) {
             niriFetchProc.running = true;
         } else {
             fetchProc.running = true;
@@ -193,7 +195,7 @@ Singleton {
         target: Config.options.light.night
         function onColorTemperatureChanged() {
             if (!root.temperatureActive) return;
-            if (root.isNiri) {
+            if (root.useWlsunset) {
                 root.startNiriSunset(Config.options.light.night.colorTemperature);
             } else {
                 Quickshell.execDetached(["hyprctl", "hyprsunset", "temperature", `${Config.options.light.night.colorTemperature}`]);

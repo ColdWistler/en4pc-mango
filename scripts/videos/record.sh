@@ -91,17 +91,43 @@ detect_compositor() {
         echo "niri"
     elif [[ "$combined" == *"hyprland"* ]]; then
         echo "hyprland"
+    elif [[ "$combined" == *"mango"* ]]; then
+        echo "mango"
     else
         echo "unknown"
     fi
 }
 
-getactivemonitor() {
-    if [[ "$(detect_compositor)" == "niri" ]]; then
-        niri msg -j workspaces | jq -r '.[] | select(.is_focused == true) | .output'
-    else
-        hyprctl monitors -j | jq -r '.[] | select(.focused == true) | .name'
+# Locate the running Mango instance socket when the signature is not exported
+# into this script's environment (e.g. launched from a service/shortcut).
+mango_signature() {
+    if [[ -n "${MANGO_INSTANCE_SIGNATURE:-}" ]]; then
+        echo "$MANGO_INSTANCE_SIGNATURE"
+        return
     fi
+    find "/run/user/$(id -u)" -maxdepth 1 -name 'mango-*.sock' 2>/dev/null | head -n1
+}
+
+getactivemonitor() {
+    case "$(detect_compositor)" in
+        niri)
+            niri msg -j workspaces | jq -r '.[] | select(.is_focused == true) | .output'
+            ;;
+        mango)
+            local signature monitor
+            signature="$(mango_signature)"
+            if [[ -n "$signature" ]]; then
+                monitor="$(MANGO_INSTANCE_SIGNATURE="$signature" mmsg get cursorpos 2>/dev/null | jq -r '.monitor // empty')"
+                if [[ -z "$monitor" ]]; then
+                    monitor="$(MANGO_INSTANCE_SIGNATURE="$signature" mmsg get focusing-client 2>/dev/null | jq -r '.monitor // empty')"
+                fi
+                echo "$monitor"
+            fi
+            ;;
+        *)
+            hyprctl monitors -j | jq -r '.[] | select(.focused == true) | .name'
+            ;;
+    esac
 }
 
 mkdir -p "$RECORDING_DIR"
