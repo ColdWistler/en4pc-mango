@@ -72,13 +72,15 @@ WindowDialog {
     WindowDialogSectionHeader {
         text: Translation.tr("Anti-flashbang (experimental)")
         Layout.bottomMargin: -10
+        visible: WM.isHyprland
     }
 
     GroupedList {
         itemVerticalPadding: 16
         bgcolor: Appearance.colors.colSurfaceContainerHigh
+        visible: WM.isHyprland
         ConfigSwitch {
-            Layout.topMargin: -2  
+            Layout.topMargin: -2
             iconSize: Appearance.font.pixelSize.larger
             buttonIcon: "filter"
             text: Translation.tr("Content adjustment")
@@ -93,7 +95,7 @@ WindowDialog {
         }
 
         ConfigSwitch {
-            Layout.topMargin: -2  
+            Layout.topMargin: -2
             iconSize: Appearance.font.pixelSize.larger
             buttonIcon: "light_mode"
             text: Translation.tr("Brightness adjustment")

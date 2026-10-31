@@ -59,7 +59,7 @@ ButtonMouseArea {
     }
 
     function switchWorkspaceToHovered() {
-        WM.switchWorkspace(wsModel.getWorkspaceIdAt(hoverIndex));
+        WM.switchWorkspace(WM.workspaceIdFromDisplayIndex(wsModel.getWorkspaceIdAt(hoverIndex), wsModel.monitorName));
     }
     onPressed: mouse => {
         if (mouse.button == Qt.LeftButton)

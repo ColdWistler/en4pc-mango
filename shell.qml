@@ -12,7 +12,6 @@ import QtQuick
 import QtQuick.Window
 import Quickshell
 import Quickshell.Io
-import Quickshell.Hyprland
 
 ShellRoot {
     id: root
@@ -35,6 +34,7 @@ ShellRoot {
             }
 
             if (Config.options.hyprland.autostartApps.enable &&
+                WM.isHyprland &&
                 Config.options.hyprland.autostartApps.apps.length > 0) {
                 autostartProc.running = true
             }

@@ -19,7 +19,7 @@ LockScreen {
 
     function occupiedWorkspaceIds() {
         var ids = new Set()
-        var list = Hyprland.workspaces.values
+        var list = WM.workspaces
         for (var k = 0; k < list.length; ++k) {
             if ((list[k].toplevels?.values?.length ?? 0) > 0) {
                 ids.add(list[k].id)
@@ -40,7 +40,7 @@ LockScreen {
         var currents = {}
         var taken = root.occupiedWorkspaceIds()
         for (var i = 0; i < Quickshell.screens.length; ++i) {
-            var current = Hyprland.monitorFor(Quickshell.screens[i])?.activeWorkspace?.id
+            var current = WM.monitorFor(Quickshell.screens[i])?.activeWorkspace?.id
             if (current == undefined) {
                 return
             }

@@ -53,12 +53,12 @@ PanelWindow {
     property bool contentRegionOpacity: Config.options.regionSelector.targetRegions.contentRegionOpacity
 
     // Vars for indicators
-    readonly property var windows: [...HyprlandData.windowList].sort((a, b) => {
+    readonly property var windows: [...WM.windowList].sort((a, b) => {
         // Sort floating=true windows before others
         if (a.floating === b.floating) return 0;
         return a.floating ? -1 : 1;
     })
-    readonly property var layers: HyprlandData.layers
+    readonly property var layers: WM.layers
     readonly property real falsePositivePreventionRatio: 0.5
 
     // Screen & interaction vars
