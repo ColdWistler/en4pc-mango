@@ -103,12 +103,15 @@ ContentPage {
                 Layout.alignment: Qt.AlignBottom | Qt.AlignRight
                 spacing: 8
                 RippleButton {
-                    buttonText: Translation.tr("Update Dots")
+                    buttonText: Translation.tr("Update from your fork")
                     buttonRadius: Appearance.rounding.full
                     colBackground: Appearance.colors.colPrimaryContainer
                     colBackgroundHover: Appearance.colors.colPrimaryContainerHover
                     Layout.preferredHeight: 44
                     downAction: () => runUpdateDots()
+                    StyledToolTip {
+                        text: Translation.tr("Fast-forwards this folder from origin (your fork). Never deletes anything, refuses on a dirty tree. Upstream pctrade/end4-pC changes are not touched by this.")
+                    }
                     contentItem: StyledText {
                         text: parent.buttonText
                         horizontalAlignment: Text.AlignHCenter

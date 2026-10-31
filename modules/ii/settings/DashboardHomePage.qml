@@ -785,7 +785,7 @@ Item {
                                         color: Appearance.colors.colOnTertiaryContainer
                                     }
                                     StyledText {
-                                        text: Translation.tr("Update Dots")
+                                        text: Translation.tr("Update from fork")
                                         font.weight: Font.Medium
                                         color: Appearance.colors.colOnTertiaryContainer
                                     }
