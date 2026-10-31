@@ -5,8 +5,10 @@
 
 **My personal Quickshell desktop configuration for [MangoWM](https://github.com/mangowm/mango)**
 
-A fork of the [illogical-impulse](https://github.com/end-4/dots-hyprland) shell,
-customised and adapted from Hyprland to MangoWM.
+Original shell [illogical-impulse](https://github.com/end-4/dots-hyprland) by
+[@end-4](https://github.com/end-4) ·
+Customized end4 fork by [**pctrade**](https://github.com/pctrade) ·
+MangoWM port by [**soggygenus**](https://github.com/ColdWistler)
 
 </div>
 
