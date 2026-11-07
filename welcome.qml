@@ -23,6 +23,17 @@ ApplicationWindow {
     property string firstRunFileContent: "This file is just here to confirm you've been greeted :>"
     property real contentPadding: 8
     property bool showNextTime: false
+
+    // Keeps first-run hints naming the compositor you actually run.
+    readonly property string compositorName: {
+        switch (WM.compositor) {
+        case "niri": return Translation.tr("Niri");
+        case "mango": return Translation.tr("Mango");
+        default: return Translation.tr("Hyprland");
+        }
+    }
+
+    readonly property string reloadLabel: Translation.tr("Reload %1 & Quickshell").arg(root.compositorName)
     visible: true
     onClosing: {
         Quickshell.execDetached(["notify-send", Translation.tr("Welcome app"), Translation.tr("Enjoy! You can reopen the welcome app any time with <tt>Super+Shift+Alt+/</tt>. To open the settings app, hit <tt>Super+I</tt>"), "-a", "Shell"]);
@@ -349,7 +360,7 @@ ApplicationWindow {
 
                     NoticeBox {
                         Layout.fillWidth: true
-                        text: Translation.tr("Change any time later with /dark, /light, /wallpaper in the launcher\nIf the shell's colors aren't changing:\n    1. Open the right sidebar with Super+N\n    2. Click \"Reload Hyprland & Quickshell\" in the top-right corner")
+                        text: Translation.tr("Change any time later with /dark, /light, /wallpaper in the launcher\nIf the shell's colors aren't changing:\n    1. Open the right sidebar with Super+N\n    2. Click \"%1\" in the top-right corner").arg(root.reloadLabel)
                     }
                 }
 

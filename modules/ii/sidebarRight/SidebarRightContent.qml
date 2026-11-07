@@ -45,6 +45,28 @@ Item {
     readonly property bool animatedEntrance: WM.compositor !== "hyprland"
     readonly property bool sidebarOpen: GlobalStates.sidebarRightOpen
 
+    readonly property string compositorName: {
+        switch (WM.compositor) {
+        case "niri": return Translation.tr("Niri");
+        case "mango": return Translation.tr("Mango");
+        default: return Translation.tr("Hyprland");
+        }
+    }
+
+    readonly property string reloadLabel: Translation.tr("Reload %1 & Quickshell").arg(root.compositorName)
+
+    // Reloads the compositor (each one has its own way) and then the shell.
+    function reloadShell() {
+        if (WM.compositor === "niri") {
+            Quickshell.execDetached(["niri", "msg", "action", "reload-config"]);
+        } else if (WM.compositor === "mango") {
+            Quickshell.execDetached(["mmsg", "dispatch", "reload_config"]);
+        } else {
+            Quickshell.execDetached(["hyprctl", "reload"]);
+        }
+        Quickshell.reload(true);
+    }
+
     readonly property MprisPlayer activePlayer: MprisController.activePlayer
     readonly property var realPlayers: MprisController.players
     readonly property var meaningfulPlayers: {
@@ -402,12 +424,9 @@ Item {
                         QuickToggleButton {
                             toggled: false
                             buttonIcon: "restart_alt"
-                            onClicked: {
-                                Quickshell.execDetached(["hyprctl", "reload"])
-                                Quickshell.reload(true);
-                            }
+                            onClicked: root.reloadShell()
                             StyledToolTip {
-                                text: Translation.tr("Reload Hyprland & Quickshell")
+                                text: root.reloadLabel
                             }
                         }
                         QuickToggleButton {
@@ -719,18 +738,9 @@ Item {
             QuickToggleButton {
                 toggled: false
                 buttonIcon: "restart_alt"
-                onClicked: {
-                    if (WM.compositor === "niri") {
-                        Quickshell.execDetached(["niri", "msg", "action", "reload-config"]);
-                    } else {
-                        Quickshell.execDetached(["hyprctl", "reload"]);
-                    }
-                    Quickshell.reload(true);
-                }
+                onClicked: root.reloadShell()
                 StyledToolTip {
-                    text: WM.compositor === "niri"
-                        ? Translation.tr("Reload Niri & Quickshell")
-                        : Translation.tr("Reload Hyprland & Quickshell")
+                    text: root.reloadLabel
                 }
             }
             QuickToggleButton {

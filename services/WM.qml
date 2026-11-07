@@ -67,6 +67,15 @@ Singleton {
     function swapWindows(a, b) { backend?.swapWindows(a, b) }
     function setCursorWarp(enabled) { backend?.setCursorWarp(enabled) }
     function monitorFor(screen) { return backend?.monitorFor(screen) ?? null }
+
+    // Compositor layouts (Mango only). Each entry is { name, symbol }; the
+    // current layout reflects the focused tag, since Mango lays out per tag.
+    // A property (not a function) so bindings re-evaluate when it changes.
+    readonly property var layouts: backend?.layouts ?? []
+    readonly property var currentLayout: backend?.currentLayout()
+        ?? { name: "", symbol: "", known: false }
+    function setLayout(name) { backend?.setLayout(name) }
+    function cycleLayout() { backend?.cycleLayout() }
     function workspaceDisplayIndex(id) { return backend?.workspaceDisplayIndex(id) ?? Number(id) }
     function workspaceIdFromDisplayIndex(displayIndex, monitorName) { return backend?.workspaceIdFromDisplayIndex(displayIndex, monitorName) ?? Number(displayIndex) }
     function activeWorkspaceForMonitor(monitorName) { return backend?.activeWorkspaceForMonitor(monitorName) ?? null }

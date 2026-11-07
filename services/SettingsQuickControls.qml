@@ -43,6 +43,32 @@ Singleton {
         );
     }
 
+    // ── MangoWM ─────────────────────────────────────────────────────────────
+    // MangoConfig.options mirrors ~/.config/mango; a write regenerates
+    // qssettings/shell.conf and reloads Mango, so these are live controls.
+    readonly property var mango: MangoConfig.options
+
+    function mangoSwitch(read, write) {
+        return root.toggle(read, write);
+    }
+
+    function mangoSpin(read, write, from, to, stepSize) {
+        return root.spin(read, write, from, to, stepSize);
+    }
+
+    // Mango stores some values as reals (0..1); the UI shows whole percents.
+    function mangoScaledSpin(read, write, from, to, stepSize, factor) {
+        return root.spin(() => Math.round(read() * factor), value => write(value / factor), from, to, stepSize);
+    }
+
+    function mangoSelect(read, write, options) {
+        return root.select(read, write, options);
+    }
+
+    function mangoText(read, write) {
+        return { type: "text", get: read, set: write };
+    }
+
     function optionAccessors(path) {
         const keys = path.split(".");
         const last = keys.pop();
@@ -513,7 +539,90 @@ Singleton {
                 { displayName: Translation.tr("Normal"),    icon: "animation",            value: "normal" },
                 { displayName: Translation.tr("Niri Like"), icon: "mobiledata_arrows",    value: "niri"   }
             ]
-        )
+        ),
+
+        // ── MangoWM ────────────────────────────────────────────────────────
+        // Keys are "mango:<label>" and match the labels on the classic Mango
+        // settings page, so launcher search gets inline controls there too.
+        "mango:Gap inside — horizontal": mangoSpin(() => root.mango.appearance.gapInnerHorizontal, v => root.mango.appearance.gapInnerHorizontal = v, 0, 60, 1),
+        "mango:Gap inside — vertical": mangoSpin(() => root.mango.appearance.gapInnerVertical, v => root.mango.appearance.gapInnerVertical = v, 0, 60, 1),
+        "mango:Gap outside — horizontal": mangoSpin(() => root.mango.appearance.gapOuterHorizontal, v => root.mango.appearance.gapOuterHorizontal = v, 0, 120, 1),
+        "mango:Gap outside — vertical": mangoSpin(() => root.mango.appearance.gapOuterVertical, v => root.mango.appearance.gapOuterVertical = v, 0, 120, 1),
+        "mango:Border width": mangoSpin(() => root.mango.appearance.borderPx, v => root.mango.appearance.borderPx = v, 0, 20, 1),
+        "mango:Corner radius": mangoSpin(() => root.mango.appearance.borderRadius, v => root.mango.appearance.borderRadius = v, 0, 40, 1),
+        "mango:No border when only one window": mangoSwitch(() => root.mango.appearance.noBorderWhenSingle, v => root.mango.appearance.noBorderWhenSingle = v),
+        "mango:Focused window opacity (%)": mangoScaledSpin(() => root.mango.appearance.focusedOpacity, v => root.mango.appearance.focusedOpacity = v, 20, 100, 5, 100),
+        "mango:Unfocused window opacity (%)": mangoScaledSpin(() => root.mango.appearance.unfocusedOpacity, v => root.mango.appearance.unfocusedOpacity = v, 20, 100, 5, 100),
+
+        "mango:New windows become master": mangoSwitch(() => root.mango.layout.newIsMaster, v => root.mango.layout.newIsMaster = v),
+        "mango:Master size (%)": mangoScaledSpin(() => root.mango.layout.masterFactor, v => root.mango.layout.masterFactor = v, 20, 90, 5, 100),
+        "mango:Master window count": mangoSpin(() => root.mango.layout.masterCount, v => root.mango.layout.masterCount = v, 1, 5, 1),
+        "mango:Smart gaps (no gaps with one window)": mangoSwitch(() => root.mango.layout.smartGaps, v => root.mango.layout.smartGaps = v),
+        "mango:Default column width (%)": mangoScaledSpin(() => root.mango.layout.scrollerProportion, v => root.mango.layout.scrollerProportion = v, 20, 100, 5, 100),
+        "mango:Center focused column": mangoSwitch(() => root.mango.layout.scrollerFocusCenter, v => root.mango.layout.scrollerFocusCenter = v),
+        "mango:Prefer centered columns": mangoSwitch(() => root.mango.layout.scrollerPreferCenter, v => root.mango.layout.scrollerPreferCenter = v),
+        "mango:Smart split (follow cursor)": mangoSwitch(() => root.mango.layout.dwindleSmartSplit, v => root.mango.layout.dwindleSmartSplit = v),
+        "mango:Preserve split direction": mangoSwitch(() => root.mango.layout.dwindlePreserveSplit, v => root.mango.layout.dwindlePreserveSplit = v),
+
+        "mango:Blur windows": mangoSwitch(() => root.mango.effects.blur, v => root.mango.effects.blur = v),
+        "mango:Blur layer surfaces": mangoSwitch(() => root.mango.effects.blurLayer, v => root.mango.effects.blurLayer = v),
+        "mango:Blur passes": mangoSpin(() => root.mango.effects.blurPasses, v => root.mango.effects.blurPasses = v, 1, 6, 1),
+        "mango:Blur radius": mangoSpin(() => root.mango.effects.blurRadius, v => root.mango.effects.blurRadius = v, 1, 20, 1),
+        "mango:Blur noise (%)": mangoScaledSpin(() => root.mango.effects.blurNoise, v => root.mango.effects.blurNoise = v, 0, 20, 1, 100),
+        "mango:Blur saturation (%)": mangoScaledSpin(() => root.mango.effects.blurSaturation, v => root.mango.effects.blurSaturation = v, 0, 300, 10, 100),
+        "mango:Shadows": mangoSwitch(() => root.mango.effects.shadows, v => root.mango.effects.shadows = v),
+        "mango:Shadow size": mangoSpin(() => root.mango.effects.shadowSize, v => root.mango.effects.shadowSize = v, 0, 50, 1),
+        "mango:Shadow blur": mangoSpin(() => root.mango.effects.shadowBlur, v => root.mango.effects.shadowBlur = v, 0, 50, 1),
+
+        "mango:Enable animations": mangoSwitch(() => root.mango.animations.enable, v => root.mango.animations.enable = v),
+        "mango:Animate layers": mangoSwitch(() => root.mango.animations.layerAnimations, v => root.mango.animations.layerAnimations = v),
+        "mango:Open animation": mangoSelect(
+            () => root.mango.animations.openType,
+            v => root.mango.animations.openType = v,
+            [
+                { displayName: Translation.tr("Zoom"), icon: "zoom_in", value: "zoom" },
+                { displayName: Translation.tr("Slide"), icon: "slide_library", value: "slide" }
+            ]
+        ),
+        "mango:Close animation": mangoSelect(
+            () => root.mango.animations.closeType,
+            v => root.mango.animations.closeType = v,
+            [
+                { displayName: Translation.tr("Zoom"), icon: "zoom_out", value: "zoom" },
+                { displayName: Translation.tr("Slide"), icon: "slide_library", value: "slide" }
+            ]
+        ),
+        "mango:Open duration (ms)": mangoSpin(() => root.mango.animations.durationOpen, v => root.mango.animations.durationOpen = v, 50, 2000, 50),
+        "mango:Close duration (ms)": mangoSpin(() => root.mango.animations.durationClose, v => root.mango.animations.durationClose = v, 50, 2000, 50),
+        "mango:Tag switch duration (ms)": mangoSpin(() => root.mango.animations.durationTag, v => root.mango.animations.durationTag = v, 50, 2000, 50),
+
+        "mango:Keyboard layout": mangoText(() => root.mango.input.xkbLayout, v => root.mango.input.xkbLayout = v),
+        "mango:Numlock by default": mangoSwitch(() => root.mango.input.numlock, v => root.mango.input.numlock = v),
+        "mango:Repeat delay (ms)": mangoSpin(() => root.mango.input.repeatDelay, v => root.mango.input.repeatDelay = v, 100, 1000, 10),
+        "mango:Repeat rate": mangoSpin(() => root.mango.input.repeatRate, v => root.mango.input.repeatRate = v, 10, 100, 1),
+        "mango:Tap to click": mangoSwitch(() => root.mango.input.tapToClick, v => root.mango.input.tapToClick = v),
+        "mango:Tap and drag": mangoSwitch(() => root.mango.input.tapAndDrag, v => root.mango.input.tapAndDrag = v),
+        "mango:Drag lock": mangoSwitch(() => root.mango.input.dragLock, v => root.mango.input.dragLock = v),
+        "mango:Natural scroll": mangoSwitch(() => root.mango.input.trackpadNatural, v => root.mango.input.trackpadNatural = v),
+        "mango:Mouse natural scroll": mangoSwitch(() => root.mango.input.mouseNatural, v => root.mango.input.mouseNatural = v),
+        "mango:Disable while typing": mangoSwitch(() => root.mango.input.trackpadDisableWhileTyping, v => root.mango.input.trackpadDisableWhileTyping = v),
+        "mango:Disable touchpad": mangoSwitch(() => root.mango.input.disableTrackpad, v => root.mango.input.disableTrackpad = v),
+
+        "mango:Focus follows mouse": mangoSwitch(() => root.mango.misc.sloppyFocus, v => root.mango.misc.sloppyFocus = v),
+        "mango:Focus window on activation": mangoSwitch(() => root.mango.misc.focusOnActivate, v => root.mango.misc.focusOnActivate = v),
+        "mango:Focus across monitors": mangoSwitch(() => root.mango.misc.focusCrossMonitor, v => root.mango.misc.focusCrossMonitor = v),
+        "mango:Focus across tags": mangoSwitch(() => root.mango.misc.focusCrossTag, v => root.mango.misc.focusCrossTag = v),
+        "mango:Warp cursor to focused window": mangoSwitch(() => root.mango.misc.warpCursor, v => root.mango.misc.warpCursor = v),
+        "mango:Snap floating windows": mangoSwitch(() => root.mango.misc.floatingSnap, v => root.mango.misc.floatingSnap = v),
+        "mango:Snap distance": mangoSpin(() => root.mango.misc.snapDistance, v => root.mango.misc.snapDistance = v, 0, 100, 5),
+        "mango:Drag tiled windows onto each other": mangoSwitch(() => root.mango.misc.dragTileToTile, v => root.mango.misc.dragTileToTile = v),
+        "mango:Drag small tiled windows": mangoSwitch(() => root.mango.misc.dragTileSmall, v => root.mango.misc.dragTileSmall = v),
+        "mango:Cursor size": mangoSpin(() => root.mango.misc.cursorSize, v => root.mango.misc.cursorSize = v, 16, 64, 2),
+
+        "mango:Inner gap": mangoSpin(() => root.mango.overview.gapInner, v => root.mango.overview.gapInner = v, 0, 60, 1),
+        "mango:Outer gap": mangoSpin(() => root.mango.overview.gapOuter, v => root.mango.overview.gapOuter = v, 0, 120, 1),
+        "mango:Enable hot area": mangoSwitch(() => root.mango.overview.enableHotarea, v => root.mango.overview.enableHotarea = v),
+        "mango:Hot area size": mangoSpin(() => root.mango.overview.hotareaSize, v => root.mango.overview.hotareaSize = v, 1, 50, 1)
     })
 
     function find(pageId, rawSection, rawSubsection, rawLabel) {

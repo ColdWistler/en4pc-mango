@@ -28,16 +28,33 @@ Item {
 
     readonly property string group: GlobalStates.dashboardGroup
 
+    // The compositor group follows the compositor we are actually running on, so
+    // the settings app never offers Hyprland-only knobs on Mango (or vice versa).
+    readonly property var compositorGroup: {
+        switch (WM.compositor) {
+        case "hyprland": return { name: Translation.tr("Hyprland"), icon: "select_window_2" };
+        case "niri":     return { name: Translation.tr("Niri"),     icon: "select_window_2" };
+        case "mango":    return { name: Translation.tr("Mango"),    icon: "nutrition" };
+        default:         return null;
+        }
+    }
+
     readonly property var groupDefs: {
         const c = Appearance.colors;
         const mix = (a, b) => ColorUtils.mix(a, b, 0.5);
+        const compositor = Object.assign({}, root.compositorGroup, {
+            container: mix(c.colPrimaryContainer, c.colSecondaryContainer),
+            onContainer: mix(c.colOnPrimaryContainer, c.colOnSecondaryContainer),
+            accent: mix(c.colPrimary, c.colSecondary),
+            onAccent: mix(c.colOnPrimary, c.colOnSecondary)
+        });
         return [
             { name: Translation.tr("General"), icon: "browse", container: mix(c.colPrimaryContainer, c.colTertiaryContainer), onContainer: mix(c.colOnPrimaryContainer, c.colOnTertiaryContainer), accent: mix(c.colPrimary, c.colTertiary), onAccent: mix(c.colOnPrimary, c.colOnTertiary) },
             { name: Translation.tr("Interface"), icon: "bottom_app_bar", container: c.colPrimaryContainer, onContainer: c.colOnPrimaryContainer, accent: c.colPrimary, onAccent: c.colOnPrimary },
             { name: Translation.tr("Bar"), icon: "toast", rotation: 180, container: c.colSecondaryContainer, onContainer: c.colOnSecondaryContainer, accent: c.colSecondary, onAccent: c.colOnSecondary },
             { name: Translation.tr("Desktop"), icon: "texture", container: c.colTertiaryContainer, onContainer: c.colOnTertiaryContainer, accent: c.colTertiary, onAccent: c.colOnTertiary },
-            { name: Translation.tr("Hyprland"), icon: "select_window_2", container: mix(c.colPrimaryContainer, c.colSecondaryContainer), onContainer: mix(c.colOnPrimaryContainer, c.colOnSecondaryContainer), accent: mix(c.colPrimary, c.colSecondary), onAccent: mix(c.colOnPrimary, c.colOnSecondary) },
-            { name: Translation.tr("Services"), icon: "settings", container: mix(c.colSecondaryContainer, c.colTertiaryContainer), onContainer: mix(c.colOnSecondaryContainer, c.colOnTertiaryContainer), accent: mix(c.colSecondary, c.colTertiary), onAccent: mix(c.colOnSecondary, c.colOnTertiary) }
+            ...(root.compositorGroup ? [compositor] : []),
+            { name: Translation.tr("Services"), icon: "settings", container: mix(c.colSecondaryContainer, c.colTertiaryContainer), onContainer: mix(c.colOnSecondaryContainer, c.colOnTertiaryContainer), accent: mix(c.colSecondary, c.colTertiary), onAccent: mix(c.colSecondary, c.colOnTertiary) }
         ];
     }
 
@@ -56,7 +73,10 @@ Item {
         name: Translation.tr("All"), icon: "apps",
         container: Appearance.m3colors.m3surfaceContainerHighest, onContainer: Appearance.m3colors.m3onSurface,
         accent: Appearance.m3colors.m3onSurface, onAccent: Appearance.m3colors.m3surface
-    })].concat(groupDefs.map(g => Object.assign({ id: g.name, count: allEntries.filter(e => e.kind === "card" && e.group === g.name && isVisibleEntry(e)).length }, g)))
+    })].concat(groupDefs
+        .map(g => Object.assign({ id: g.name, count: allEntries.filter(e => e.kind === "card" && e.group === g.name && isVisibleEntry(e)).length }, g))
+        .filter(g => g.count > 0)
+    )
 
     readonly property var railDimmed: {
         const dim = {};
@@ -142,6 +162,7 @@ Item {
     function isVisibleEntry(e) {
         if (e.when === "material" && ColorSchemes.current !== "") return false;
         if (e.when === "hyprland" && WM.compositor !== "hyprland") return false;
+        if (e.when === "mango" && WM.compositor !== "mango") return false;
         if (e.when === "layoutdwindle" && (WM.compositor !== "hyprland" || Config.options.hyprland.general.layout !== "dwindle")) return false;
         if (e.when === "layoutmaster" && (WM.compositor !== "hyprland" || Config.options.hyprland.general.layout !== "master")) return false;
         if (e.when === "hyprbordercolor" && (WM.compositor !== "hyprland" || !Config.options.hyprland.general.borderColor.enable)) return false;

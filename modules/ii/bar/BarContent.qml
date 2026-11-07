@@ -94,7 +94,8 @@ Item {
                 : Appearance.colors.colUiBackground)
             : "transparent"
         color: Config.options.background.widgets.glass.enable && fill.a > 0 ? "transparent" : fill
-        radius: Config.options.bar.cornerStyle === 1 ? Appearance.rounding.windowRounding : 0
+        radius: (Config.options.bar.cornerStyle === 1 ? Appearance.rounding.windowRounding : 0)
+            || (Config.options.bar.cornerStyle === 0 && !centerOnly && Config.options.bar.showBackground ? Appearance.rounding.screenRounding : 0)
         border.width: (!centerOnly && Config.options.bar.cornerStyle === 1) ? 1 : 0
         border.color: Config.options.bar.cornerStyle === 1 && !Config.options.bar.showBackground ? "transparent" : ColorUtils.transparentize(Appearance.colors.colLayer0Border, 0.8) 
     }

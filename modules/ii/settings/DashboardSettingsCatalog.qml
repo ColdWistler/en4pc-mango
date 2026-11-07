@@ -59,8 +59,10 @@ QtObject {
         for (const prop of Object.keys(glassDefaults)) glass[prop] = glassDefaults[prop];
     }
 
+    // Keys this catalog doesn't define itself (e.g. all "mango:*" cards) are
+    // resolved from the shared SettingsQuickControls registry.
     function controlFor(key) {
-        return custom[key] ?? hyprControls[key] ?? null;
+        return custom[key] ?? hyprControls[key] ?? SettingsQuickControls.controls[key] ?? null;
     }
 
     readonly property var hyprControls: ({
@@ -788,6 +790,109 @@ QtObject {
             page: Translation.tr("Hyprland"), title: Translation.tr("Animations"), icon: "animation", when: "hyprland", cards: [
                 { type: "toggle", key: "hyprland:Enable", title: Translation.tr("Animations"), icon: "animation" },
                 { type: "select", key: "hyprland:Presets", title: Translation.tr("Animation presets"), icon: "auto_awesome" }
+            ]
+        },
+        {
+            page: Translation.tr("Mango"), title: Translation.tr("Layout"), icon: "dashboard_customize", when: "mango", cards: [
+                { type: "spin", key: "mango:Gap inside — horizontal", title: Translation.tr("Gap inside — horizontal"), icon: "swap_horiz" },
+                { type: "spin", key: "mango:Gap inside — vertical", title: Translation.tr("Gap inside — vertical"), icon: "swap_vert" },
+                { type: "spin", key: "mango:Gap outside — horizontal", title: Translation.tr("Gap outside — horizontal"), icon: "aspect_ratio" },
+                { type: "spin", key: "mango:Gap outside — vertical", title: Translation.tr("Gap outside — vertical"), icon: "height" },
+                { type: "toggle", key: "mango:Smart gaps (no gaps with one window)", title: Translation.tr("Smart gaps"), icon: "space_dashboard" },
+                { type: "toggle", key: "mango:New windows become master", title: Translation.tr("New windows become master"), icon: "star" },
+                { type: "spin", key: "mango:Master size (%)", title: Translation.tr("Master size (%)"), icon: "auto_awesome_mosaic" },
+                { type: "spin", key: "mango:Master window count", title: Translation.tr("Master window count"), icon: "counter_1" }
+            ]
+        },
+        {
+            page: Translation.tr("Mango"), title: Translation.tr("Scroller"), icon: "view_carousel", when: "mango", cards: [
+                { type: "spin", key: "mango:Default column width (%)", title: Translation.tr("Default column width (%)"), icon: "width" },
+                { type: "toggle", key: "mango:Center focused column", title: Translation.tr("Center focused column"), icon: "align_horizontal_center" },
+                { type: "toggle", key: "mango:Prefer centered columns", title: Translation.tr("Prefer centered columns"), icon: "center_focus_strong" }
+            ]
+        },
+        {
+            page: Translation.tr("Mango"), title: Translation.tr("Dwindle"), icon: "call_split", when: "mango", cards: [
+                { type: "toggle", key: "mango:Smart split (follow cursor)", title: Translation.tr("Smart split (follow cursor)"), icon: "smart_toy" },
+                { type: "toggle", key: "mango:Preserve split direction", title: Translation.tr("Preserve split direction"), icon: "call_split" }
+            ]
+        },
+        {
+            page: Translation.tr("Mango"), title: Translation.tr("Visual & Aesthetics"), icon: "palette", when: "mango", cards: [
+                { type: "spin", key: "mango:Border width", title: Translation.tr("Border width"), icon: "border_outer" },
+                { type: "spin", key: "mango:Corner radius", title: Translation.tr("Corner radius"), icon: "rounded_corner" },
+                { type: "toggle", key: "mango:No border when only one window", title: Translation.tr("No border when single"), icon: "crop_free" },
+                { type: "spin", key: "mango:Focused window opacity (%)", title: Translation.tr("Focused opacity (%)"), icon: "opacity" },
+                { type: "spin", key: "mango:Unfocused window opacity (%)", title: Translation.tr("Unfocused opacity (%)"), icon: "opacity" },
+                { type: "spin", key: "mango:Cursor size", title: Translation.tr("Cursor size"), icon: "mouse" }
+            ]
+        },
+        {
+            page: Translation.tr("Mango"), title: Translation.tr("Blur & shadows"), icon: "blur_on", when: "mango", cards: [
+                { type: "toggle", key: "mango:Blur windows", title: Translation.tr("Blur windows"), icon: "blur_on" },
+                { type: "toggle", key: "mango:Blur layer surfaces", title: Translation.tr("Blur layer surfaces"), icon: "layers" },
+                { type: "spin", key: "mango:Blur passes", title: Translation.tr("Blur passes"), icon: "replay" },
+                { type: "spin", key: "mango:Blur radius", title: Translation.tr("Blur radius"), icon: "blur_circular" },
+                { type: "spin", key: "mango:Blur noise (%)", title: Translation.tr("Blur noise (%)"), icon: "grain" },
+                { type: "spin", key: "mango:Blur saturation (%)", title: Translation.tr("Blur saturation (%)"), icon: "palette" },
+                { type: "toggle", key: "mango:Shadows", title: Translation.tr("Window shadows"), icon: "ev_shadow" },
+                { type: "spin", key: "mango:Shadow size", title: Translation.tr("Shadow size"), icon: "expand_all" },
+                { type: "spin", key: "mango:Shadow blur", title: Translation.tr("Shadow blur"), icon: "blur_linear" }
+            ]
+        },
+        {
+            page: Translation.tr("Mango"), title: Translation.tr("Animations"), icon: "animation", when: "mango", cards: [
+                { type: "toggle", key: "mango:Enable animations", title: Translation.tr("Animations"), icon: "animation" },
+                { type: "toggle", key: "mango:Animate layers", title: Translation.tr("Animate layers"), icon: "layers" },
+                { type: "select", key: "mango:Open animation", title: Translation.tr("Open animation"), icon: "open_in_new" },
+                { type: "select", key: "mango:Close animation", title: Translation.tr("Close animation"), icon: "close" },
+                { type: "spin", key: "mango:Open duration (ms)", title: Translation.tr("Open duration (ms)"), icon: "timer" },
+                { type: "spin", key: "mango:Close duration (ms)", title: Translation.tr("Close duration (ms)"), icon: "timer" },
+                { type: "spin", key: "mango:Tag switch duration (ms)", title: Translation.tr("Tag switch duration (ms)"), icon: "timer" }
+            ]
+        },
+        {
+            page: Translation.tr("Mango"), title: Translation.tr("Keyboard"), icon: "keyboard", when: "mango", cards: [
+                { type: "text", w: 2, key: "mango:Keyboard layout", title: Translation.tr("Keyboard layout"), icon: "keyboard" },
+                { type: "toggle", key: "mango:Numlock by default", title: Translation.tr("Numlock by default"), icon: "numbers" },
+                { type: "spin", key: "mango:Repeat delay (ms)", title: Translation.tr("Repeat delay (ms)"), icon: "keyboard_return" },
+                { type: "spin", key: "mango:Repeat rate", title: Translation.tr("Repeat rate"), icon: "speed" }
+            ]
+        },
+        {
+            page: Translation.tr("Mango"), title: Translation.tr("Trackpad & mouse"), icon: "touchpad_mouse", when: "mango", cards: [
+                { type: "toggle", key: "mango:Tap to click", title: Translation.tr("Tap to click"), icon: "touch_app" },
+                { type: "toggle", key: "mango:Tap and drag", title: Translation.tr("Tap and drag"), icon: "pan_tool_alt" },
+                { type: "toggle", key: "mango:Drag lock", title: Translation.tr("Drag lock"), icon: "lock" },
+                { type: "toggle", key: "mango:Natural scroll", title: Translation.tr("Natural scroll"), icon: "swap_vert" },
+                { type: "toggle", key: "mango:Disable while typing", title: Translation.tr("Disable while typing"), icon: "keyboard_hide" },
+                { type: "toggle", key: "mango:Disable touchpad", title: Translation.tr("Disable touchpad"), icon: "touchpad_off" },
+                { type: "toggle", key: "mango:Mouse natural scroll", title: Translation.tr("Mouse natural scroll"), icon: "mouse" }
+            ]
+        },
+        {
+            page: Translation.tr("Mango"), title: Translation.tr("Focus"), icon: "ads_click", when: "mango", cards: [
+                { type: "toggle", key: "mango:Focus follows mouse", title: Translation.tr("Focus follows mouse"), icon: "ads_click" },
+                { type: "toggle", key: "mango:Focus window on activation", title: Translation.tr("Focus window on activation"), icon: "open_in_new" },
+                { type: "toggle", key: "mango:Focus across monitors", title: Translation.tr("Focus across monitors"), icon: "move_group" },
+                { type: "toggle", key: "mango:Focus across tags", title: Translation.tr("Focus across tags"), icon: "select_all" },
+                { type: "toggle", key: "mango:Warp cursor to focused window", title: Translation.tr("Warp cursor to focused window"), icon: "mouse" }
+            ]
+        },
+        {
+            page: Translation.tr("Mango"), title: Translation.tr("Windows"), icon: "select_window", when: "mango", cards: [
+                { type: "toggle", key: "mango:Snap floating windows", title: Translation.tr("Snap floating windows"), icon: "dashboard" },
+                { type: "spin", key: "mango:Snap distance", title: Translation.tr("Snap distance"), icon: "straighten" },
+                { type: "toggle", key: "mango:Drag tiled windows onto each other", title: Translation.tr("Drag tiled windows onto each other"), icon: "drag_pan" },
+                { type: "toggle", key: "mango:Drag small tiled windows", title: Translation.tr("Drag small tiled windows"), icon: "zoom_out_map" }
+            ]
+        },
+        {
+            page: Translation.tr("Mango"), title: Translation.tr("Overview"), icon: "overview_key", when: "mango", cards: [
+                { type: "spin", key: "mango:Inner gap", title: Translation.tr("Overview inner gap"), icon: "margin" },
+                { type: "spin", key: "mango:Outer gap", title: Translation.tr("Overview outer gap"), icon: "border_outer" },
+                { type: "toggle", key: "mango:Enable hot area", title: Translation.tr("Enable hot area"), icon: "select_all" },
+                { type: "spin", key: "mango:Hot area size", title: Translation.tr("Hot area size"), icon: "pinch" }
             ]
         },
         {

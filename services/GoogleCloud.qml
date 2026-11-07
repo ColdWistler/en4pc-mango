@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import qs.modules.common.utils
+import qs.services
 
 Singleton {
     id: root
@@ -22,8 +23,13 @@ Singleton {
     readonly property string tokenForKeyScriptPath: Quickshell.shellPath("services/gCloud/token-from-key-venv.sh")
 
     function load() {
-        // Init load will be handled by Component.onCompleted
-        if (!tokenReady) return;
+        // Init load will be handled by Component.onCompleted, but that is
+        // skipped (silently) when the keyring was still locked at startup, so
+        // retry it here on real use instead of doing nothing.
+        if (!root.keyReady) {
+            loadKeyIfPossible();
+            return;
+        }
         // We just reload if key expired
         if (new Date() >= root.tokenExpiry) {
             root.tokenReady = false;
@@ -92,6 +98,15 @@ Singleton {
             root.getToken();
         } else {
             KeyringStorage.fetchKeyringData();
+        }
+    }
+
+    // The keyring read is async and may have been skipped at startup (locked),
+    // so finish the load as soon as the data actually arrives.
+    Connections {
+        target: KeyringStorage
+        function onDataChanged() {
+            if (!root.keyReady) root.loadKeyIfPossible();
         }
     }
 

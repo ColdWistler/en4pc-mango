@@ -1,7 +1,7 @@
 {
   "Style: Blurred": "Estilo: desenfocado",
   "Unknown device": "Dispositivo desconocido",
-  "Change any time later with /dark, /light, /wallpaper in the launcher\nIf the shell's colors aren't changing:\n    1. Open the right sidebar with Super+N\n    2. Click \"Reload Hyprland & Quickshell\" in the top-right corner": "Puedes cambiarlo cuando quieras con /dark, /light, /wallpaper en el lanzador\nSi los colores del shell no cambian:\n    1. Abre la barra lateral derecha con Super+N\n    2. Haz clic en \"Recargar Hyprland y Quickshell\" en la esquina superior derecha",
+  "Change any time later with /dark, /light, /wallpaper in the launcher\nIf the shell's colors aren't changing:\n    1. Open the right sidebar with Super+N\n    2. Click \"%1\" in the top-right corner": "Puedes cambiarlo cuando quieras con /dark, /light, /wallpaper en el lanzador\nSi los colores del shell no cambian:\n    1. Abre la barra lateral derecha con Super+N\n    2. Haz clic en \"Recargar %1 y Quickshell\" en la esquina superior derecha",
   "No pending tasks": "No hay tareas pendientes",
   "Set temperature (randomness) of the model. Values range between 0 to 2 for Gemini, 0 to 1 for other models. Default is 0.5.": "Ajusta la temperatura (aleatoriedad) del modelo. Los valores van de 0 a 2 para Gemini y de 0 a 1 para los demás. El valor predeterminado es 0,5.",
   "Critical warning": "Aviso crítico",
@@ -256,7 +256,7 @@
   "Config file": "Archivo de configuración",
   "API key set for %1": "Clave de API configurada para %1",
   "Shell command": "Comando de shell",
-  "Reload Hyprland & Quickshell": "Recargar Hyprland y Quickshell",
+  "Reload %1 & Quickshell": "Recargar %1 y Quickshell",
   "Resources": "Recursos",
   "Brightness": "Brillo",
   "Unknown": "Desconocido",

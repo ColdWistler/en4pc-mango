@@ -167,7 +167,7 @@
   "Automatically suspends the system when battery is low": "Tự động ngủ khi pin thấp",
   "Current API endpoint: %1\nSet it with %2mode PROVIDER": "Endpoint API hiện tại: %1\nĐặt với lệnh %2mode PROVIDER",
   "Services": "Các dịch vụ",
-  "Reload Hyprland & Quickshell": "Tải lại Hyprland & Quickshell",
+  "Reload %1 & Quickshell": "Tải lại %1 & Quickshell",
   "Automatic suspend": "Tự động ngủ",
   "illogical-impulse Welcome": "illogical-impulse - Xin chào",
   "Interface": "Giao diện",

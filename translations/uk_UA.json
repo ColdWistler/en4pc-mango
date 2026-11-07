@@ -70,7 +70,7 @@
   "Output": "Вивід",
   "Reboot": "Перезапуск",
   "Reboot to firmware settings": "Перезапуск в параметри UEFI/BIOS",
-  "Reload Hyprland & Quickshell": "Перезавантажити Hyprland та Quickshell",
+  "Reload %1 & Quickshell": "Перезавантажити %1 та Quickshell",
   "Run": "Виконати",
   "Run command": "Виконати команду",
   "Save": "Зберегти",

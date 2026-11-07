@@ -102,6 +102,7 @@ Singleton {
                 if (data.length === 0 || !data.startsWith("{")) return;
                 try {
                     root.keyringData = JSON.parse(data);
+                    root.dataChanged()
                     // console.log("[KeyringStorage] Keyring data fetched:", JSON.stringify(root.keyringData));
                 } catch (e) {
                     console.error("[KeyringStorage] Failed to get keyring data, reinitializing.");

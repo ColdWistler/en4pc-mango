@@ -25,7 +25,7 @@
   "Add task": "Aggiungi promemoria",
   "Run command": "Esegui comando",
   "Game mode": "Modalità gioco",
-  "Reload Hyprland & Quickshell": "Riavvia Hyprland e Quickshell",
+  "Reload %1 & Quickshell": "Riavvia %1 e Quickshell",
   "Task description": "Titolo promemoria",
   "%1 | Right-click to configure": "%1",
   "Done": "Completati",

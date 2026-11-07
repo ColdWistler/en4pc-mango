@@ -156,6 +156,48 @@ Scope {
         root.dispatchClient("exchange_client," + dir, a);
     }
 
+    // === Layouts ===
+    // Mango's layouts are per tag. `mmsg get layouts` lists what this build
+    // supports, and the active tag's layout is reported as a short symbol
+    // ("T", "S", "DW", ...) on the monitor/tag streams, so we keep both.
+    property var layouts: [] // [{symbol, name}]
+
+    function refreshLayouts() {
+        layoutsProc.running = true
+    }
+
+    function layoutByName(name) {
+        return root.layouts.find(l => l.name === name) ?? null
+    }
+
+    function layoutBySymbol(symbol) {
+        return root.layouts.find(l => l.symbol === symbol) ?? null
+    }
+
+    // Layout symbol of the focused monitor's active tag.
+    function currentLayoutSymbol() {
+        const mon = root.focusedMonitor
+        const active = mon?.activeWorkspace?.idx
+        const tags = root._tagData[mon?.name] || mon?.tags || []
+        const tag = tags.find(t => Number(t.index) === Number(active))
+        return tag?.layout || mon?.layoutSymbol || ""
+    }
+
+    function currentLayout() {
+        const symbol = root.currentLayoutSymbol()
+        const found = root.layoutBySymbol(symbol)
+        return { name: found?.name ?? (symbol || "tile"), symbol: symbol, known: !!found }
+    }
+
+    // mmsg's `setlayout` takes the layout *name* (e.g. "scroller"), not the symbol.
+    function setLayout(name) {
+        root.dispatch("setlayout," + String(name))
+    }
+
+    function cycleLayout() {
+        root.dispatch("switch_layout")
+    }
+
     // === Query API used by WM ===
     function monitorFor(screen) {
         if (!screen) return null;
@@ -371,7 +413,10 @@ Scope {
         }
     }
 
-    Component.onCompleted: root.rebuild();
+    Component.onCompleted: {
+        root.rebuild();
+        root.refreshLayouts();
+    }
 
     // === Watchers ===
     Process {
@@ -409,6 +454,32 @@ Scope {
         onExited: tagRestart.restart()
     }
     Timer { id: tagRestart; interval: 1000; onTriggered: tagWatcher.running = true }
+
+    // One-shot: which layouts this Mango build supports (name + symbol).
+    Process {
+        id: layoutsProc
+        command: ["mmsg", "get", "layouts"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    const payload = JSON.parse(text)
+                    const list = (payload.layouts ?? []).map(l => ({ symbol: String(l.symbol ?? ""), name: String(l.name ?? "") }))
+                    if (list.length > 0)
+                        root.layouts = list
+                } catch (e) {
+                    console.log("[MangoBackend] Failed to parse layouts: " + e)
+                }
+            }
+        }
+    }
+
+    // Retry until the compositor answers; the socket may not exist yet at boot.
+    Timer {
+        interval: 5000
+        repeat: true
+        running: true
+        onTriggered: if (root.layouts.length === 0) root.refreshLayouts()
+    }
 
     // Falls back to the pointer's monitor when no client holds focus.
     Process {
