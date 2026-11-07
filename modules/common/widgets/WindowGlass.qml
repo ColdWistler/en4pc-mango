@@ -36,8 +36,25 @@ Item {
     readonly property bool floating: !fullscreenSurface && !!win && win.anchors === undefined && win.anchor === undefined
     readonly property bool popup: !fullscreenSurface && !!win && win.anchor !== undefined
 
-    property real floatX: 0
-    property real floatY: 0
+    readonly property var floatPos: GlassFloating.positions[win?.title ?? ""] ?? null
+    readonly property var floatMonitor: scr ? HyprlandData.monitors.find(m => m.name === scr.name) : null
+    readonly property real floatX: floatPos ? floatPos.x - (floatMonitor?.x ?? 0) : 0
+    readonly property real floatY: floatPos ? floatPos.y - (floatMonitor?.y ?? 0) : 0
+    readonly property bool wantsFloatTracking: live && floating && !!win?.visible
+    property bool claimed: false
+
+    function syncClaim() {
+        if (root.wantsFloatTracking && !root.claimed) {
+            GlassFloating.claim()
+            root.claimed = true
+        } else if (!root.wantsFloatTracking && root.claimed) {
+            GlassFloating.release()
+            root.claimed = false
+        }
+    }
+
+    onWantsFloatTrackingChanged: syncClaim()
+    Component.onDestruction: if (root.claimed) GlassFloating.release()
 
     function panelOffset(w, s) {
         const a = w.anchors
@@ -104,24 +121,7 @@ Item {
     readonly property real winX: winPos.x
     readonly property real winY: winPos.y
 
-    Process {
-        id: tracker
-        running: root.live && root.floating && !!root.win?.visible
-        command: ["bash", "-c", "while :; do hyprctl -j activewindow | tr -d '\\n'; echo; sleep 0.016; done"]
-        stdout: SplitParser {
-            onRead: line => {
-                try {
-                    const client = JSON.parse(line)
-                    if (client.title !== root.win.title || !root.scr) return
-                    const mon = WM.monitors.find(m => m.name === root.scr.name)
-                    root.floatX = client.at[0] - (mon?.x ?? 0)
-                    root.floatY = client.at[1] - (mon?.y ?? 0)
-                } catch (e) {}
-            }
-        }
-    }
-
-    property point origin: Qt.point(0, 0)
+property point origin: Qt.point(0, 0)
 
     function refresh() {
         const p = mapToItem(null, 0, 0)
@@ -151,7 +151,10 @@ Item {
     onWidthChanged: kick()
     onHeightChanged: kick()
     onVisibleChanged: kick()
-    Component.onCompleted: kick()
+    Component.onCompleted: {
+        syncClaim()
+        kick()
+    }
 
     Connections {
         target: root.win
@@ -172,6 +175,24 @@ Item {
         id: settleTimer
         interval: 1000
         onTriggered: ticker.running = false
+    }
+
+    // mango-shell: floating window position tracker via hyprctl
+    Process {
+        id: tracker
+        running: root.live && root.floating && !!root.win?.visible
+        command: ["bash", "-c", "while :; do hyprctl -j activewindow | tr -d '\\n'; echo; sleep 0.016; done"]
+        stdout: SplitParser {
+            onRead: line => {
+                try {
+                    const client = JSON.parse(line)
+                    if (client.title !== root.win.title || !root.scr) return
+                    const mon = WM.monitors.find(m => m.name === root.scr.name)
+                    root.floatX = client.at[0] - (mon?.x ?? 0)
+                    root.floatY = client.at[1] - (mon?.y ?? 0)
+                } catch (e) {}
+            }
+        }
     }
 
     readonly property string wallpaper: {
